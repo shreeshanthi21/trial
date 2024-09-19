@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e; /* Black background */
+            color: #f4f4f4; /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: #333; /* Dark grey background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #f4a261; /* Orange color */
+            margin-bottom: 20px;
+        }
+
+        input, textarea, button {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #666;
+            border-radius: 4px;
+            background-color: #222; /* Dark background for input fields */
+            color: #f4f4f4; /* Light text for input fields */
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            height: 150px;
+            resize: none;
+        }
+
+        button {
+            background-color: #f4a261; /* Orange button */
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #e89c5a; /* Slightly darker orange */
+        }
+
+        .flashcard {
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            background: #444; /* Darker grey for flashcards */
+            color: #f4f4f4;
+            display: block; /* Ensure flashcards are visible */
+        }
+
+        .hidden {
+            display: none; /* Class to hide elements */
+        }
+
+        .flashcard .edit-button,
+        .flashcard .delete-button {
+            background-color: #f4a261; /* Orange color */
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .flashcard .edit-button:hover,
+        .flashcard .delete-button:hover {
+            background-color: #e89c5a; /* Slightly darker orange */
+        }
+
+        .flashcard .edit-button {
+            background-color: #ff8c00; /* Different color for edit button */
+        }
+
+        .flashcard .edit-button:hover {
+            background-color: #e07b00; /* Slightly darker orange for edit button */
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 10px;
+            }
+
+            input, textarea, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <h1 id="pageTitle">Create Flashcards</h1>
+        <div id="flashcardForm">
+            <input type="text" id="questionInput" placeholder="Enter question">
+            <input type="text" id="answerInput" placeholder="Enter answer">
+            <button id="generateButton">Add Flashcard</button>
+            <button id="displayButton">Display Flashcards</button>
+        </div>
+        <div id="flashcardsOutput" class="hidden"></div>
+        <button id="goBackButton" class="hidden">Go Back</button> <!-- Go Back Button -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateButton = document.getElementById('generateButton');
+            const displayButton = document.getElementById('displayButton');
+            const goBackButton = document.getElementById('goBackButton');
+            const flashcardsOutput = document.getElementById('flashcardsOutput');
+            const flashcardForm = document.getElementById('flashcardForm');
+            const questionInput = document.getElementById('questionInput');
+            const answerInput = document.getElementById('answerInput');
+
+            let editIndex = null; // To store the index of the flashcard being edited
+
+            // Add or update a flashcard
+            function saveFlashcard() {
+                const question = questionInput.value.trim();
+                const answer = answerInput.value.trim();
+
+                if (question && answer) {
+                    const flashcards = JSON.parse(localStorage.getItem('flashcards')) || [];
+
+                    if (editIndex !== null) {
+                        // Update existing flashcard
+                        flashcards[editIndex] = { question, answer };
+                        editIndex = null; // Reset editIndex
+                        generateButton.textContent = 'Add Flashcard'; // Reset button text
+                    } else {
+                        // Add new flashcard
+                        flashcards.push({ question, answer });
+                    }
+
+                    localStorage.setItem('flashcards', JSON.stringify(flashcards));
+                    questionInput.value = '';
+                    answerInput.value = '';
+                    alert('Flashcard saved!');
+                } else {
+                    alert('Please enter both question and answer.');
+                }
+            }
+
+            generateButton.addEventListener('click', function() {
+                saveFlashcard();
+            });
+
+            // Display flashcards
+            displayButton.addEventListener('click', function() {
+                displayFlashcards();
+            });
+
+            function displayFlashcards() {
+                const flashcards = JSON.parse(localStorage.getItem('flashcards')) || [];
+                flashcardsOutput.innerHTML = '';
+
+                if (flashcards.length === 0) {
+                    flashcardsOutput.innerHTML = '<p>No flashcards available. Please add some first.</p>';
+                } else {
+                    flashcardForm.classList.add('hidden'); // Hide form inputs and buttons
+                    goBackButton.classList.remove('hidden'); // Show "Go Back" button
+                    flashcardsOutput.classList.remove('hidden'); // Show flashcards
+
+                    flashcards.forEach((card, index) => {
+                        const flashcardDiv = document.createElement('div');
+                        flashcardDiv.className = 'flashcard';
+                        flashcardDiv.innerHTML = `
+                            <strong>Q:</strong> ${card.question} <br>
+                            <strong>A:</strong> ${card.answer} <br>
+                            <button class="edit-button" data-index="${index}">Edit</button>
+                            <button class="delete-button" data-index="${index}">Delete</button>
+                        `;
+                        flashcardsOutput.appendChild(flashcardDiv);
+                    });
+
+                    document.querySelectorAll('.edit-button').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const index = this.getAttribute('data-index');
+                            editFlashcard(index);
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-button').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const index = this.getAttribute('data-index');
+                            deleteFlashcard(index);
+                        });
+                    });
+                }
+            }
+
+            // Go back to add flashcards
+            goBackButton.addEventListener('click', function() {
+                flashcardsOutput.innerHTML = '';
+                flashcardForm.classList.remove('hidden'); // Show form inputs and buttons
+                goBackButton.classList.add('hidden'); // Hide "Go Back" button
+                flashcardsOutput.classList.add('hidden'); // Hide flashcards
+            });
+
+            function editFlashcard(index) {
+                const flashcards = JSON.parse(localStorage.getItem('flashcards')) || [];
+                const card = flashcards[index];
+                questionInput.value = card.question;
+                answerInput.value = card.answer;
+                generateButton.textContent = 'Update Flashcard'; // Change button text to "Update"
+                editIndex = index; // Set the index of the flashcard being edited
+            }
+
+            function deleteFlashcard(index) {
+                const flashcards = JSON.parse(localStorage.getItem('flashcards')) || [];
+                flashcards.splice(index, 1);
+                localStorage.setItem('flashcards', JSON.stringify(flashcards));
+                displayFlashcards();
+            }
+        });
+    </script>
+</body>
+</html>
